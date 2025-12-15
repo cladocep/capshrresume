@@ -77,7 +77,9 @@ if missing_keys:
     print(error_msg)
     if has_streamlit:
         st.error(error_msg)
-    sys.exit(1)
+        st.stop()
+    else:
+        raise ValueError(error_msg)
 
 collection_name = "resume_embeddings"
 
@@ -88,9 +90,13 @@ qdrant_client = None
 def _init_embeddings():
     global embeddings
     if embeddings is None:
-        embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-small", openai_api_key=OPENAI_API_KEY
-        )
+        try:
+            embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-small", openai_api_key=OPENAI_API_KEY
+            )
+        except Exception as e:
+            print(f"Error initializing OpenAIEmbeddings: {e}")
+            raise
     return embeddings
 
 def _init_qdrant_client():
