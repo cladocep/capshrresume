@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 from langchain_openai import ChatOpenAI
 from ragcpc import get_retriever
@@ -7,12 +8,32 @@ from ragcpc import get_retriever
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-llm = ChatOpenAI(
-    model="gpt-4.1-mini",
-    openai_api_key=OPENAI_API_KEY,
-    temperature=0,
-)
-retriever = get_retriever()
+# Try to get from Streamlit secrets if not in .env
+if not OPENAI_API_KEY:
+    try:
+        OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")
+    except:
+        pass
+
+# Initialize lazily to handle Streamlit Cloud environment
+llm = None
+retriever = None
+
+def _init_llm():
+    global llm
+    if llm is None:
+        llm = ChatOpenAI(
+            model="gpt-3.5-turbo",
+            openai_api_key=OPENAI_API_KEY,
+            temperature=0,
+        )
+    return llm
+
+def _init_retriever():
+    global retriever
+    if retriever is None:
+        retriever = get_retriever()
+    return retriever
 
 system_prompt = """
 Kamu adalah Chatbot HR yang membantu recruiter mencari dan menganalisa kandidat berdasarkan database resume yang tersedia.
@@ -31,9 +52,13 @@ def run_agent(query: str) -> dict:
     2. Susun konteks kandidat.
     3. Kirim ke LLM + sistem prompt untuk di analisis."""
 
+    # Initialize lazily
+    retriever_instance = _init_retriever()
+    llm_instance = _init_llm()
+
     # 1 rag : ambil kandidat dari retriever
     try:
-        docs = retriever.invoke(query)
+        docs = retriever_instance.invoke(query)
     except Exception as e:
         return {
             "answer": f"Agent error saat retrieval: {str(e)}",
@@ -103,7 +128,7 @@ Tugas anda:
         },
     ]
     # panggil llm
-    response = llm.invoke(messages)
+    response = llm_instance.invoke(messages)
     answer = response.content if hasattr(response, "content") else str (response)
 
     # return ke app
