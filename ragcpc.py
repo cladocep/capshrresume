@@ -5,10 +5,34 @@ from qdrant_client import QdrantClient
 from dotenv import load_dotenv
 import os
 
+try:
+    import streamlit as st
+except:
+    st = None
+
 load_dotenv()
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+# Try to get from Streamlit secrets if not in .env
+if not QDRANT_URL and st:
+    try:
+        QDRANT_URL = st.secrets.get("QDRANT_URL")
+    except:
+        pass
+
+if not QDRANT_API_KEY and st:
+    try:
+        QDRANT_API_KEY = st.secrets.get("QDRANT_API_KEY")
+    except:
+        pass
+
+if not OPENAI_API_KEY and st:
+    try:
+        OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")
+    except:
+        pass
 
 collection_name = "resume_embeddings"
 
