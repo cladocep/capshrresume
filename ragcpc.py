@@ -12,33 +12,61 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 collection_name = "resume_embeddings"
 
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small", api_key=OPENAI_API_KEY
-)
-qdrant_client = QdrantClient(
-    url=QDRANT_URL, api_key=QDRANT_API_KEY
-)
+# Initialize lazily to handle Streamlit Cloud environment
+embeddings = None
+qdrant_client = None
+
+def _init_embeddings():
+    global embeddings
+    if embeddings is None:
+        embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-small", api_key=OPENAI_API_KEY
+        )
+    return embeddings
+
+def _init_qdrant_client():
+    global qdrant_client
+    if qdrant_client is None:
+        qdrant_client = QdrantClient(
+            url=QDRANT_URL, api_key=QDRANT_API_KEY
+        )
+    return qdrant_client
 
 class CustomQdrantRetriever:
     """Custom retriever yang extract teks dari Qdrant dengan proper payload handling."""
     
     def __init__(self, k=5):
-        self.embeddings = embeddings
-        self.client = qdrant_client
+        self.embeddings = None  # Will be initialized lazily
+        self.client = None  # Will be initialized lazily
         self.k = k
+    
+    def _get_embeddings(self):
+        """Get or initialize embeddings"""
+        if self.embeddings is None:
+            self.embeddings = _init_embeddings()
+        return self.embeddings
+    
+    def _get_client(self):
+        """Get or initialize Qdrant client"""
+        if self.client is None:
+            self.client = _init_qdrant_client()
+        return self.client
     
     def invoke(self, query: str):
         """Search dan rekonstruksi Documents dengan teks dari payload."""
         try:
+            embeddings = self._get_embeddings()
+            client = self._get_client()
+            
             # Embed query
-            query_embedding = self.embeddings.embed_query(query)
+            query_embedding = embeddings.embed_query(query)
             
             # Use QdrantClient's query_points method with search_params
             from qdrant_client.models import PointStruct
             
             # Query using scroll/search alternatives
             # Get all points first then filter - not ideal but works
-            points, _ = self.client.scroll(
+            points, _ = client.scroll(
                 collection_name=collection_name,
                 limit=10000,
                 with_payload=True,
