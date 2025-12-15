@@ -1,0 +1,11 @@
+streamlit==1.52.1
+pandas==2.x.x
+langchain==0.x.x
+langchain-openai==0.x.x
+langchain-qdrant==0.x.x
+qdrant-client==1.x.x
+openai==1.x.x
+tiktoken==0.x.x
+reportlab==4.4.6
+python-dotenv==1.x.x
+numpy==1.x.x

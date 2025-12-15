@@ -1,0 +1,7 @@
+.env
+
+#Streamlit
+.streamlit/
+*.streamlit.app
+
+.csv
