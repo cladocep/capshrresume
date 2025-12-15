@@ -1,6 +1,13 @@
 from dotenv import load_dotenv
 import os
-import streamlit as st
+import sys
+
+try:
+    import streamlit as st
+    has_streamlit = True
+except:
+    has_streamlit = False
+    st = None
 
 from langchain_openai import ChatOpenAI
 from ragcpc import get_retriever
@@ -9,11 +16,41 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Try to get from Streamlit secrets if not in .env
-if not OPENAI_API_KEY:
+if not OPENAI_API_KEY and has_streamlit:
     try:
         OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")
-    except:
+    except Exception as e:
         pass
+
+# Validate API key exists
+if not OPENAI_API_KEY:
+    error_msg = """
+    ❌ ERROR: OPENAI_API_KEY not found!
+    
+    Fix this:
+    
+    Option 1 (Local Development):
+    1. Create .env file:
+       cp .env.example .env
+    2. Edit .env and add:
+       OPENAI_API_KEY=sk-proj-xxxxx_your_key_xxxxx
+    3. Restart app:
+       streamlit run appc.py
+    
+    Option 2 (Streamlit Cloud):
+    1. Go to: https://share.streamlit.io
+    2. Click "Manage app" (lower right)
+    3. Settings → Secrets
+    4. Add:
+       OPENAI_API_KEY = sk-proj-xxxxx_your_key_xxxxx
+    5. Save (app will restart)
+    
+    Get OpenAI key from: https://platform.openai.com/api-keys
+    """
+    print(error_msg)
+    if has_streamlit:
+        st.error(error_msg)
+    sys.exit(1)
 
 # Initialize lazily to handle Streamlit Cloud environment
 llm = None
@@ -24,7 +61,7 @@ def _init_llm():
     if llm is None:
         llm = ChatOpenAI(
             model="gpt-3.5-turbo",
-            openai_api_key=OPENAI_API_KEY,
+            api_key=OPENAI_API_KEY,
             temperature=0,
         )
     return llm
