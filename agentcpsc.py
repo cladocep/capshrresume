@@ -50,7 +50,9 @@ if not OPENAI_API_KEY:
     print(error_msg)
     if has_streamlit:
         st.error(error_msg)
-    sys.exit(1)
+        st.stop()
+    else:
+        raise ValueError(error_msg)
 
 # Initialize lazily to handle Streamlit Cloud environment
 llm = None
@@ -59,11 +61,15 @@ retriever = None
 def _init_llm():
     global llm
     if llm is None:
-        llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
-            openai_api_key=OPENAI_API_KEY,
-            temperature=0,
-        )
+        # Minimal parameters to avoid compatibility issues
+        try:
+            llm = ChatOpenAI(
+                model="gpt-3.5-turbo",
+                openai_api_key=OPENAI_API_KEY,
+            )
+        except Exception as e:
+            print(f"Error initializing ChatOpenAI: {e}")
+            raise
     return llm
 
 def _init_retriever():
