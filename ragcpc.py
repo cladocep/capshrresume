@@ -89,7 +89,7 @@ def _init_embeddings():
     global embeddings
     if embeddings is None:
         embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-small", api_key=OPENAI_API_KEY
+            model="text-embedding-3-small", openai_api_key=OPENAI_API_KEY
         )
     return embeddings
 
