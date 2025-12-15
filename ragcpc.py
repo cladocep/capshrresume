@@ -4,10 +4,13 @@ from langchain_core.documents import Document
 from qdrant_client import QdrantClient
 from dotenv import load_dotenv
 import os
+import sys
 
 try:
     import streamlit as st
+    has_streamlit = True
 except:
+    has_streamlit = False
     st = None
 
 load_dotenv()
@@ -16,23 +19,65 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Try to get from Streamlit secrets if not in .env
-if not QDRANT_URL and st:
+if not QDRANT_URL and has_streamlit:
     try:
         QDRANT_URL = st.secrets.get("QDRANT_URL")
     except:
         pass
 
-if not QDRANT_API_KEY and st:
+if not QDRANT_API_KEY and has_streamlit:
     try:
         QDRANT_API_KEY = st.secrets.get("QDRANT_API_KEY")
     except:
         pass
 
-if not OPENAI_API_KEY and st:
+if not OPENAI_API_KEY and has_streamlit:
     try:
         OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY")
     except:
         pass
+
+# Validate all required keys exist
+missing_keys = []
+if not OPENAI_API_KEY:
+    missing_keys.append("OPENAI_API_KEY")
+if not QDRANT_URL:
+    missing_keys.append("QDRANT_URL")
+if not QDRANT_API_KEY:
+    missing_keys.append("QDRANT_API_KEY")
+
+if missing_keys:
+    error_msg = f"""
+    ❌ ERROR: Missing required environment variables: {', '.join(missing_keys)}
+    
+    Fix this:
+    
+    Option 1 (Local Development):
+    1. Create .env file:
+       cp .env.example .env
+    2. Edit .env and add all 3 keys:
+       OPENAI_API_KEY=sk-proj-xxxxx
+       QDRANT_URL=https://xxxxx.us-east-1-0.aws.cloud.qdrant.io
+       QDRANT_API_KEY=ey...
+    3. Restart app:
+       streamlit run appc.py
+    
+    Option 2 (Streamlit Cloud):
+    1. Go to: https://share.streamlit.io
+    2. Find your app
+    3. Click "Manage app" (lower right)
+    4. Settings → Secrets
+    5. Add all 3 keys
+    6. Save (app will restart)
+    
+    Get keys from:
+    - OpenAI: https://platform.openai.com/api-keys
+    - Qdrant: https://cloud.qdrant.io/
+    """
+    print(error_msg)
+    if has_streamlit:
+        st.error(error_msg)
+    sys.exit(1)
 
 collection_name = "resume_embeddings"
 
